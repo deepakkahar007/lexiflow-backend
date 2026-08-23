@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config.settings import config
+
 origins = ["http://localhost:5173"]
 
 app = FastAPI()
@@ -16,7 +18,4 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
-
-
-# server = "server:main"
+    return {"Hello": "World", "res": config.PASSWORD_HASH_SECRET}
