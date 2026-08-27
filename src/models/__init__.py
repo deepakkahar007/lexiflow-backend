@@ -1,3 +1,3 @@
-from .DocumentTable import DocumentTable
+from .models import DocumentTable, UserTable
 
-__all__ = ["DocumentTable"]
+__all__ = [DocumentTable, UserTable]

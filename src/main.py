@@ -8,6 +8,7 @@ from config.settings import config
 from db.client import close_database, get_db
 from db.query import createDocument, getAllDocuments
 from helper.storage import save_files_storage
+from routes.Auth import authRouter
 from schema.User import UserResponse
 
 origins = ["http://localhost:5173"]
@@ -34,6 +35,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(authRouter)
 
 
 @app.get("/")
