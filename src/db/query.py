@@ -52,6 +52,15 @@ async def updateUser(
         return None
 
 
+async def getAllUsers(session: AsyncSession):
+    try:
+        result = await session.execute(select(UserTable))
+        return result.scalars().all()
+    except Exception as e:
+        print(e)
+        return []
+
+
 async def getAllDocuments(session: AsyncSession):
     try:
         result = await session.execute(select(DocumentTable))

@@ -1,3 +1,6 @@
+from typing import Annotated
+
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -27,3 +30,6 @@ async def get_db():
 
 async def close_database():
     await engine.dispose()
+
+
+DbSession = Annotated[AsyncSession, Depends(get_db)]

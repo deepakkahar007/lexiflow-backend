@@ -9,6 +9,7 @@ class DocumentTable(BaseDatabaseModel):
 
     name: Mapped[str] = mapped_column(String, nullable=False)
     path: Mapped[str] = mapped_column(String, nullable=False)
+    vector: Mapped[str] = mapped_column(String, nullable=True, default=None)
 
 
 class UserTable(BaseDatabaseModel):

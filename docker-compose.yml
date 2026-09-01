@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:alpine
+    image: pgvector/pgvector:pg18
     container_name: lexiflow-db
     restart: no
     environment:
@@ -34,13 +34,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
   # app:
   #   build:
   #     context: .
   #     dockerfile: Dockerfile
   #   container_name: lexiflow-app
-  #   restart: always
+  #   restart: no
   #   ports:
   #     - "8000:8000"
   #   environment:
