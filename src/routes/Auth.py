@@ -1,8 +1,11 @@
+from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
+from sqlalchemy.exc import IntegrityError
 
 from db.client import DbSession
 from db.query import createUser, getAllUsers, getUserByEmail
@@ -28,7 +31,23 @@ class UserRegisterResponse(BaseModel):
 class UserLoginResponse(BaseModel):
     status: bool
     message: str
-    token: str | None
+
+
+class UserLogoutResponse(BaseModel):
+    status: bool
+    message: str
+
+
+class UserListResponse(BaseModel):
+    id: UUID
+    email: EmailStr
+    is_verified: bool
+    name: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+        extra = "ignore"
 
 
 authRouter = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -58,7 +77,7 @@ async def register(user: UserRegisterRequestBody, db: DbSession):
 
 
 @authRouter.post("/login", name="Login User", response_model=UserLoginResponse)
-async def login(user: UserLoginRequestBody, db: DbSession):
+async def login(user: UserLoginRequestBody, db: DbSession, response: Response):
     try:
         if not user.email or not user.password:
             return UserLoginResponse(status=False, message="Missing required fields")
@@ -66,14 +85,12 @@ async def login(user: UserLoginRequestBody, db: DbSession):
         is_user_exists = await getUserByEmail(db, user.email)
 
         if not is_user_exists:
-            return UserLoginResponse(status=False, message="User not found", token=None)
+            return UserLoginResponse(status=False, message="User not found")
 
         is_password_valid = verify_password(user.password, is_user_exists.password)
 
         if not is_password_valid:
-            return UserLoginResponse(
-                status=False, message="Invalid password", token=None
-            )
+            return UserLoginResponse(status=False, message="Invalid password")
 
         token = create_access_token(
             {
@@ -83,22 +100,43 @@ async def login(user: UserLoginRequestBody, db: DbSession):
             }
         )
 
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            # secure=True,
+            samesite="lax",
+            max_age=1800,
+        )
+
         return UserLoginResponse(
             status=True,
             message=f"{is_user_exists.name} logged in successfully",
-            token=token,
         )
-    except Exception as e:
+    except (ValueError, IntegrityError) as e:
         print(e)
-        return UserLoginResponse(
-            status=False, message="Something went wrong", token=None
+        return UserLoginResponse(status=False, message="Something went wrong")
+
+
+@authRouter.post("/logout", name="Logout User", response_model=UserLogoutResponse)
+async def logout(response: Response):
+    try:
+        response.delete_cookie(
+            key="access_token",
+            httponly=True,
+            secure=True,
+            samesite="lax",
         )
 
+        return UserLogoutResponse(status=True, message="Logged out successfully")
+    except (ValueError, IntegrityError) as e:
+        return UserRegisterResponse(status=False, message=str(e))
 
-@authRouter.get("/users/list")
+
+@authRouter.get("/users/list", response_model=list[UserListResponse])
 async def get_users_list(db: DbSession):
     users = await getAllUsers(db)
-    return {"users": users}
+    return users
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
