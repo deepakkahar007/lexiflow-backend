@@ -3,11 +3,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from pydantic import BaseModel
 
 from config.settings import config
 from db.client import close_database
 from routes.Auth import authRouter
 from routes.Document import documentRouter
+from routes.Notebook import notebookRoute
 
 
 @asynccontextmanager
@@ -37,9 +39,16 @@ app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 # Routes
 app.include_router(authRouter)
 app.include_router(documentRouter)
+app.include_router(notebookRoute)
 
 
 # Health check
-@app.get("/health", tags=["Health"])
+
+
+class HealthCheckResponse(BaseModel):
+    status: str
+
+
+@app.get("/health", tags=["Health"], response_model=HealthCheckResponse)
 def health_check():
-    return {"status": "OK"}
+    return HealthCheckResponse(status="OK")
