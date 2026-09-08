@@ -5,7 +5,12 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from db.client import DbSession
-from db.query import createNotebook, getAllNotebooks, getUserNotebooksById
+from db.query import (
+    createNotebook,
+    deleteNotebookById,
+    getAllNotebooks,
+    getUserNotebooksById,
+)
 
 notebookRoute = APIRouter(prefix="/notebook", tags=["Notebook"])
 
@@ -82,4 +87,10 @@ async def get_notebook_by_user_id(id: str, db: DbSession):
 
     result = await getUserNotebooksById(session=db, user_id=id)
 
+    return result
+
+
+@notebookRoute.delete("/{id}")
+async def delete_notebook(id: str, db: DbSession):
+    result = await deleteNotebookById(session=db, id=id)
     return result

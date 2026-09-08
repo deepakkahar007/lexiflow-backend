@@ -9,7 +9,8 @@ from sqlalchemy.exc import IntegrityError
 
 from db.client import DbSession
 from db.query import createUser, getAllUsers, getUserByEmail
-from helper.auth import create_access_token, hash_password, verify_password
+from helper.auth import CurrentUser, create_access_token, hash_password, verify_password
+from schema.User import UserResponse
 
 
 class UserRegisterRequestBody(BaseModel):
@@ -103,9 +104,9 @@ async def login(user: UserLoginRequestBody, db: DbSession, response: Response):
         response.set_cookie(
             key="access_token",
             value=token,
-            httponly=True,
-            # secure=True,
-            samesite="lax",
+            httponly=False,
+            secure=True,
+            samesite="none",
             max_age=1800,
         )
 
@@ -123,9 +124,9 @@ async def logout(response: Response):
     try:
         response.delete_cookie(
             key="access_token",
-            httponly=True,
+            httponly=False,
             secure=True,
-            samesite="lax",
+            samesite="none",
         )
 
         return UserLogoutResponse(status=True, message="Logged out successfully")
@@ -140,6 +141,17 @@ async def get_users_list(db: DbSession):
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+@authRouter.post("/login2")
+async def login2(token: Annotated[str, Depends(oauth2_scheme)]):
+    print(token)
+    return {"status": "test"}
+
+
+@authRouter.get("/profile")
+async def get_profile(current_user: CurrentUser) -> UserResponse:
+    return UserResponse.model_validate(current_user)
 
 
 @authRouter.post("/test")

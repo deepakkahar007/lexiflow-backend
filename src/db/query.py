@@ -32,6 +32,17 @@ async def getAllNotebooks(session: AsyncSession):
     return result.scalars().all()
 
 
+@handle_db_errors(default_return=None)
+async def deleteNotebookById(session: AsyncSession, id: str) -> bool:
+    result = await session.execute(select(NotebookTable).where(NotebookTable.id == id))
+    notebook = result.scalars().first()
+    if notebook:
+        await session.delete(notebook)
+        await session.commit()
+        return True
+    return False
+
+
 # END OF NOTEBOOK QUERY
 
 
@@ -58,29 +69,23 @@ async def getUserByEmail(session: AsyncSession, email: str):
         return None
 
 
-async def getUserById(session: AsyncSession, user_id: int):
-    try:
-        result = await session.execute(select(UserTable).where(UserTable.id == user_id))
-        return result.scalars().first()
-    except Exception as e:
-        print(e)
-        return None
+@handle_db_errors(default_return=None)
+async def getUserById(session: AsyncSession, user_id: str):
+    result = await session.execute(select(UserTable).where(UserTable.id == user_id))
+    return result.scalars().first()
 
 
+@handle_db_errors(default_return=None)
 async def updateUser(
     session: AsyncSession, user_id: int, name: str, email: str, password: str
 ):
-    try:
-        user = await getUserById(session, user_id)
-        user.name = name
-        user.email = email
-        user.password = password
-        await session.commit()
-        await session.refresh(user)
-        return user.id
-    except Exception as e:
-        print(e)
-        return None
+    user = await getUserById(session, user_id)
+    user.name = name
+    user.email = email
+    user.password = password
+    await session.commit()
+    await session.refresh(user)
+    return user.id
 
 
 async def getAllUsers(session: AsyncSession):
