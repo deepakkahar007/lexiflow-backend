@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from config.settings import config
 from db.client import close_database
+from error.handler import register_error_handlers
 from routes.Auth import authRouter
 from routes.Document import documentRouter
 from routes.Notebook import notebookRoute
@@ -25,6 +26,10 @@ app = FastAPI(
     title="Document Processing API",
     version="1.0.0",
 )
+
+# Error Handler
+register_error_handlers(app)
+
 
 # Middleware
 app.add_middleware(
