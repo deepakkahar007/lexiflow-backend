@@ -17,3 +17,9 @@ uv run alembic upgrade head
 ```bash
 uv run alembic downgrade -1
 ```
+
+4. git remote url
+
+```bash
+https://github.com/deepakkahar007/lexiflow-backend.git
+```

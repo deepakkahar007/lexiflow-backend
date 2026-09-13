@@ -53,6 +53,7 @@ services:
   #   volumes:
   #     - .:/app
   #     - /app/.venv
+  #     - ../uploads:/app/uploads
 
 volumes:
   postgres_data:

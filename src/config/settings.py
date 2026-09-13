@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str
     JWT_EXPIRATION: int
     CLIENT_URL: str
+    REDIS_TRANSPORTER: str
+    REDIS_RESULTS: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

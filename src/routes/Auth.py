@@ -2,15 +2,14 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr
-from sqlalchemy.exc import IntegrityError
-
 from db.client import DbSession
 from db.query import createUser, getAllUsers, getUserByEmail
+from fastapi import APIRouter, Depends, Response
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from helper.auth import CurrentUser, create_access_token, hash_password, verify_password
+from pydantic import BaseModel, EmailStr
 from schema.User import UserResponse
+from sqlalchemy.exc import IntegrityError
 
 
 class UserRegisterRequestBody(BaseModel):
