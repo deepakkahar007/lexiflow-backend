@@ -1,15 +1,13 @@
 from datetime import datetime
-from typing import Annotated
 from uuid import UUID
+
+from fastapi import APIRouter, Response
+from pydantic import BaseModel, EmailStr
+from sqlalchemy.exc import IntegrityError
 
 from db.client import DbSession
 from db.query import createUser, getAllUsers, getUserByEmail
-from fastapi import APIRouter, Depends, Response
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from helper.auth import CurrentUser, create_access_token, hash_password, verify_password
-from pydantic import BaseModel, EmailStr
-from schema.User import UserResponse
-from sqlalchemy.exc import IntegrityError
+from helper.auth import create_access_token, hash_password, verify_password
 
 
 class UserRegisterRequestBody(BaseModel):
@@ -139,22 +137,6 @@ async def get_users_list(db: DbSession):
     return users
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-
-@authRouter.post("/login2")
-async def login2(token: Annotated[str, Depends(oauth2_scheme)]):
-    print(token)
-    return {"status": "test"}
-
-
-@authRouter.get("/profile")
-async def get_profile(current_user: CurrentUser) -> UserResponse:
-    return UserResponse.model_validate(current_user)
-
-
-@authRouter.post("/test")
-async def test(user: Annotated[OAuth2PasswordRequestForm, Depends()]):
-
-    print(user.__dict__)
-    return {"status": "test"}
+# @authRouter.get("/profile")
+# async def get_profile(current_user: CurrentUser) -> UserResponse:
+#     return UserResponse.model_validate(current_user)

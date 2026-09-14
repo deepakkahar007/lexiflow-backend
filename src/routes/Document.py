@@ -1,8 +1,9 @@
+from fastapi import APIRouter, UploadFile
+
 from config.celery import celery_client
 from db.client import DbSession
 from db.query import createDocument, getAllDocuments
 from error.decorator import handle_errors
-from fastapi import APIRouter, UploadFile
 from helper.storage import add_files_to_folder, save_files_storage
 from schema.User import UserResponse
 
@@ -13,8 +14,8 @@ documentRouter = APIRouter(prefix="/document", tags=["Document"])
 @handle_errors(default_error_message="Failed to create tasks")
 async def test():
 
-    # task = celery_client.send_task("src.celery.add", args=[2, 25])
-    task = celery_client.send_task("src.celery.hello", args=["johnny boi"])
+    task = celery_client.send_task("src.celery.add", args=[2, 25])
+    # task = celery_client.send_task("src.celery.hello", args=["johnny boi"])
 
     print(task)
     return {"message": "Document test endpoint", "task": task.id}
@@ -26,7 +27,11 @@ async def upload_files(files: UploadFile) -> dict[str, str | bool]:
 
     folder_name = await save_files_storage(files)
 
-    return {"status": True, "id": folder_name}
+    task = celery_client.send_task(
+        "src.celery.process_uploaded_document", args=[folder_name]
+    )
+
+    return {"status": True, "id": folder_name, "task": task.id}
 
 
 @documentRouter.post("/upload/{id}")
