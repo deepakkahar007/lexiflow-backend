@@ -1,6 +1,9 @@
 from typing import Annotated
 from uuid import UUID
 
+from fastapi import APIRouter
+from pydantic import BaseModel
+
 from db.client import DbSession
 from db.query import (
     createNotebook,
@@ -10,8 +13,6 @@ from db.query import (
 )
 from error.decorator import handle_errors
 from error.exceptions import NotFoundException
-from fastapi import APIRouter
-from pydantic import BaseModel
 
 notebookRoute = APIRouter(prefix="/notebook", tags=["Notebook"])
 
@@ -33,6 +34,7 @@ class AllNoteBooks(BaseModel):
     id: UUID
     name: str
     description: str
+    user_id: UUID
 
     model_config = {"from_attributes": True}
 
@@ -41,6 +43,7 @@ class GetNotebookByIdResponse(BaseModel):
     id: UUID
     name: str
     description: str
+    user_id: UUID
 
     model_config = {"from_attributes": True}
 

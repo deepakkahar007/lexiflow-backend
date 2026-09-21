@@ -46,27 +46,19 @@ async def deleteNotebookById(session: AsyncSession, id: str) -> bool:
 # END OF NOTEBOOK QUERY
 
 
+@handle_db_errors(default_return=None)
 async def createUser(session: AsyncSession, name: str, email: str, password: str):
-    try:
-        user = UserTable(name=name, email=email, password=password)
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
-        return user.id
-    except Exception as e:
-        print(e)
-        return None
+    user = UserTable(name=name, email=email, password=password)
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user.id
 
 
+@handle_db_errors(default_return=None)
 async def getUserByEmail(session: AsyncSession, email: str):
-    try:
-        result = await session.execute(
-            select(UserTable).where(UserTable.email == email)
-        )
-        return result.scalars().first()
-    except Exception as e:
-        print(e)
-        return None
+    result = await session.execute(select(UserTable).where(UserTable.email == email))
+    return result.scalars().first()
 
 
 @handle_db_errors(default_return=None)
@@ -88,24 +80,19 @@ async def updateUser(
     return user.id
 
 
+@handle_db_errors(default_return=[])
 async def getAllUsers(session: AsyncSession):
-    try:
-        result = await session.execute(select(UserTable))
-        return result.scalars().all()
-    except Exception as e:
-        print(e)
-        return []
+    result = await session.execute(select(UserTable))
+    return result.scalars().all()
 
 
+@handle_db_errors(default_return=[])
 async def getAllDocuments(session: AsyncSession):
-    try:
-        result = await session.execute(select(DocumentTable))
-        return result.scalars().all()
-    except Exception as e:
-        print(e)
-        return []
+    result = await session.execute(select(DocumentTable))
+    return result.scalars().all()
 
 
+@handle_db_errors(default_return=None)
 async def createDocument(session: AsyncSession, name: str, path: str):
     document = DocumentTable(name=name, path=path)
     session.add(document)
