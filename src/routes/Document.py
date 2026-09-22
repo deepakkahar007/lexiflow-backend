@@ -17,7 +17,6 @@ async def test():
     task = celery_client.send_task("src.celery.add", args=[2, 25])
     # task = celery_client.send_task("src.celery.hello", args=["johnny boi"])
 
-    print(task)
     return {"message": "Document test endpoint", "task": task.id}
 
 

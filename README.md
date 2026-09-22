@@ -23,3 +23,5 @@ uv run alembic downgrade -1
 ```bash
 https://github.com/deepakkahar007/lexiflow-backend.git
 ```
+
+use seaweed fs or localstack for s3 compatible storage
