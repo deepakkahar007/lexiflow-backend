@@ -86,6 +86,9 @@ async def getAllUsers(session: AsyncSession):
     return result.scalars().all()
 
 
+# DOCUMENT QUERY START
+
+
 @handle_db_errors(default_return=[])
 async def getAllDocuments(session: AsyncSession):
     result = await session.execute(select(DocumentTable))
@@ -93,9 +96,31 @@ async def getAllDocuments(session: AsyncSession):
 
 
 @handle_db_errors(default_return=None)
-async def createDocument(session: AsyncSession, name: str, path: str):
-    document = DocumentTable(name=name, path=path)
+async def createDocument(
+    session: AsyncSession, id: str, notebook_id: str, filename: str
+):
+    document = DocumentTable(
+        id=id,
+        notebook_id=notebook_id,
+        original_filename=filename,
+        processed_filename=filename,
+        file_path=f"/uploads/{id}",
+        mime_type="application/octet-stream",
+        file_size=0,
+        page_count=None,
+        status="QUEUED",
+        processing_stage=None,
+        parser_version=None,
+        chunker_version=None,
+        embedding_provider=None,
+        embedding_model=None,
+        embedding_version=None,
+        embedding_dimension=None,
+    )
     session.add(document)
     await session.commit()
     await session.refresh(document)
     return document.id
+
+
+# DOCUMENT QUERY END

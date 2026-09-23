@@ -95,7 +95,7 @@ class DocumentTable(BaseDatabaseModel):
     file_path: Mapped[str] = mapped_column(String, nullable=False)
     mime_type: Mapped[str] = mapped_column(String, nullable=False)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    page_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     status: Mapped[DocumentStatus] = mapped_column(
         SQLEnum(
@@ -123,33 +123,33 @@ class DocumentTable(BaseDatabaseModel):
         DateTime(timezone=True),
         nullable=True,
     )
-    parser_version: Mapped[str] = mapped_column(
+    parser_version: Mapped[str | None] = mapped_column(
         String,
-        nullable=False,
+        nullable=True,
     )
 
-    chunker_version: Mapped[str] = mapped_column(
+    chunker_version: Mapped[str | None] = mapped_column(
         String,
-        nullable=False,
+        nullable=True,
     )
-    embedding_provider: Mapped[str] = mapped_column(
+    embedding_provider: Mapped[str | None] = mapped_column(
         String,
-        nullable=False,
-    )
-
-    embedding_model: Mapped[str] = mapped_column(
-        String,
-        nullable=False,
+        nullable=True,
     )
 
-    embedding_version: Mapped[str] = mapped_column(
+    embedding_model: Mapped[str | None] = mapped_column(
         String,
-        nullable=False,
+        nullable=True,
     )
 
-    embedding_dimension: Mapped[int] = mapped_column(
+    embedding_version: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    embedding_dimension: Mapped[int | None] = mapped_column(
         Integer,
-        nullable=False,
+        nullable=True,
     )
 
     # Relationship to notebook (many-to-one)

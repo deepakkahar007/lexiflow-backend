@@ -5,7 +5,7 @@ from db.client import DbSession
 from db.query import createDocument, getAllDocuments
 from error.decorator import handle_errors
 from helper.storage import add_files_to_folder, save_files_storage
-from schema.User import UserResponse
+from schema.responseSchema import DocumentResponseSchema
 
 documentRouter = APIRouter(prefix="/document", tags=["Document"])
 
@@ -22,15 +22,32 @@ async def test():
 
 @documentRouter.post("/upload")
 @handle_errors(default_error_message="Failed to upload files")
-async def upload_files(files: UploadFile) -> dict[str, str | bool]:
+async def upload_files(files: UploadFile, db: DbSession) -> dict[str, str | bool]:
 
-    folder_name = await save_files_storage(files)
+    folder_id = await save_files_storage(files)
 
-    task = celery_client.send_task(
-        "src.celery.process_uploaded_document", args=[folder_name]
+    if not folder_id:
+        return {"status": False, "error": "Failed to save file"}
+
+    # Create document record in database
+    documet_id = await createDocument(
+        db,
+        id=folder_id,
+        notebook_id="bf906298-12b3-4c67-ae95-f4fc4be1a953",
+        filename=files.filename,
     )
 
-    return {"status": True, "id": folder_name, "task": task.id}
+    if not documet_id:
+        return {"status": False, "error": "Failed to create document record"}
+
+    task = celery_client.send_task(
+        "src.celery.process_uploaded_document", args=[documet_id]
+    )
+
+    if not task:
+        return {"status": False, "error": "Failed to create task"}
+
+    return {"status": True, "id": task.id}
 
 
 @documentRouter.post("/upload/{id}")
@@ -45,22 +62,22 @@ async def upload_files_to_folder(id: str, files: UploadFile) -> dict[str, str | 
     return {"status": True, "message": "File uploaded successfully"}
 
 
-@documentRouter.get("/documents", response_model=list[UserResponse, None])
+@documentRouter.get("/documents", response_model=list[DocumentResponseSchema])
 @handle_errors(default_error_message="Failed to get documents")
 async def get_documents(
     db: DbSession,
-) -> list[UserResponse] | None:
+) -> list[DocumentResponseSchema]:
 
     doc = await getAllDocuments(db)
     return doc
 
 
-@documentRouter.post("/documents")
-@handle_errors(default_error_message="Failed to create document")
-async def create_document(
-    name: str,
-    path: str,
-    db: DbSession,
-):
-    doc_id = await createDocument(db, name, path)
-    return {"id": doc_id}
+# @documentRouter.post("/documents")
+# @handle_errors(default_error_message="Failed to create document")
+# async def create_document(
+#     name: str,
+#     path: str,
+#     db: DbSession,
+# ):
+#     doc_id = await createDocument(db, name, path)
+#     return {"id": doc_id}
