@@ -97,7 +97,12 @@ async def getAllDocuments(session: AsyncSession):
 
 @handle_db_errors(default_return=None)
 async def createDocument(
-    session: AsyncSession, id: str, notebook_id: str, filename: str
+    session: AsyncSession,
+    id: str,
+    notebook_id: str,
+    filename: str,
+    type: str,
+    file_size: int,
 ):
     document = DocumentTable(
         id=id,
@@ -105,8 +110,8 @@ async def createDocument(
         original_filename=filename,
         processed_filename=filename,
         file_path=f"/uploads/{id}",
-        mime_type="application/octet-stream",
-        file_size=0,
+        mime_type=type,
+        file_size=file_size,
         page_count=None,
         status="QUEUED",
         processing_stage=None,
@@ -121,6 +126,14 @@ async def createDocument(
     await session.commit()
     await session.refresh(document)
     return document.id
+
+
+@handle_db_errors(default_return=None)
+async def getDocumentsByNotebookId(db: AsyncSession, notebook_id: str):
+    result = await db.execute(
+        select(DocumentTable).where(DocumentTable.notebook_id == notebook_id)
+    )
+    return result.scalars().all()
 
 
 # DOCUMENT QUERY END
