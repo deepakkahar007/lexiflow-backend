@@ -1,13 +1,18 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.exc import IntegrityError
 
 from db.client import DbSession
 from db.query import createUser, getAllUsers, getUserByEmail
-from helper.auth import create_access_token, hash_password, verify_password
+from helper.auth import (
+    CurrentUser,
+    create_access_token,
+    hash_password,
+    verify_password,
+)
 
 
 class UserRegisterRequestBody(BaseModel):
@@ -129,6 +134,17 @@ async def logout(response: Response):
         return UserLogoutResponse(status=True, message="Logged out successfully")
     except (ValueError, IntegrityError) as e:
         return UserRegisterResponse(status=False, message=str(e))
+
+
+@authRouter.get("/me", name="User Session")
+async def get_me(request: Request, user: CurrentUser):
+
+    # token = request.cookies.get("access_token")
+
+    # user = await get_current_user(token, db)
+    print(user)
+
+    return {"id": "123", "message": "user logged"}
 
 
 @authRouter.get("/users/list", response_model=list[UserListResponse])

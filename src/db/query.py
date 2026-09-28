@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from error.databaseErrorDecorator import handle_db_errors
 from models.models import DocumentTable, NotebookTable, UserTable
@@ -21,7 +22,11 @@ async def createNotebook(
 @handle_db_errors(default_return=[])
 async def getUserNotebooksById(session: AsyncSession, user_id: str):
     result = await session.execute(
-        select(NotebookTable).where(NotebookTable.user_id == user_id)
+        select(NotebookTable).where(
+            NotebookTable.user_id == user_id,
+            NotebookTable.is_deleted == False,
+            NotebookTable.is_active == True,
+        )
     )
     return result.scalars().all()
 
@@ -41,6 +46,16 @@ async def deleteNotebookById(session: AsyncSession, id: str) -> bool:
         await session.commit()
         return True
     return False
+
+
+@handle_db_errors(default_return=None)
+async def getDocumentsByNotebookId(session: AsyncSession, notebook_id: str):
+    result = await session.execute(
+        select(DocumentTable)
+        .options(selectinload(DocumentTable.document_chunks))
+        .where(DocumentTable.notebook_id == notebook_id)
+    )
+    return result.scalars().all()
 
 
 # END OF NOTEBOOK QUERY
@@ -126,14 +141,6 @@ async def createDocument(
     await session.commit()
     await session.refresh(document)
     return document.id
-
-
-@handle_db_errors(default_return=None)
-async def getDocumentsByNotebookId(db: AsyncSession, notebook_id: str):
-    result = await db.execute(
-        select(DocumentTable).where(DocumentTable.notebook_id == notebook_id)
-    )
-    return result.scalars().all()
 
 
 # DOCUMENT QUERY END
