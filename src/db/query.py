@@ -1,6 +1,8 @@
-from sqlalchemy import select
+from uuid import UUID
+
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import load_only, selectinload
 
 from error.databaseErrorDecorator import handle_db_errors
 from models.models import DocumentTable, NotebookTable, UserTable
@@ -52,8 +54,17 @@ async def deleteNotebookById(session: AsyncSession, id: str) -> bool:
 async def getDocumentsByNotebookId(session: AsyncSession, notebook_id: str):
     result = await session.execute(
         select(DocumentTable)
-        .options(selectinload(DocumentTable.document_chunks))
-        .where(DocumentTable.notebook_id == notebook_id)
+        .options(
+            load_only(
+                DocumentTable.id, DocumentTable.original_filename, DocumentTable.status
+            ),
+            selectinload(DocumentTable.document_chunks),
+        )
+        .where(
+            DocumentTable.notebook_id == notebook_id,
+            DocumentTable.is_deleted == False,
+            DocumentTable.is_active == True,
+        )
     )
     return result.scalars().all()
 
@@ -102,6 +113,16 @@ async def getAllUsers(session: AsyncSession):
 
 
 # DOCUMENT QUERY START
+
+
+@handle_db_errors(default_return=None)
+async def deleteDocumentById(session: AsyncSession, document_id: str):
+    await session.execute(
+        update(DocumentTable)
+        .where(DocumentTable.id == UUID(document_id))
+        .values(is_deleted=True, is_active=False)
+    )
+    await session.commit()
 
 
 @handle_db_errors(default_return=[])

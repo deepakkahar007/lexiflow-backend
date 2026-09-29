@@ -2,10 +2,18 @@ from fastapi import APIRouter, UploadFile
 
 from config.celery import celery_client
 from db.client import DbSession
-from db.query import createDocument, getAllDocuments, getDocumentsByNotebookId
+from db.query import (
+    createDocument,
+    deleteDocumentById,
+    getAllDocuments,
+    getDocumentsByNotebookId,
+)
 from error.decorator import handle_errors
 from helper.storage import add_files_to_folder, save_files_storage
-from schema.responseSchema import DocumentListByNotebookId, DocumentResponseSchema
+from schema.responseSchema import (
+    DocumentListByNotebookIdResponse,
+    DocumentResponseSchema,
+)
 
 documentRouter = APIRouter(prefix="/document", tags=["Document"])
 
@@ -74,16 +82,38 @@ async def get_documents(
     return doc
 
 
-@documentRouter.get("/list/{id}", response_model=list[DocumentListByNotebookId] | None)
+@documentRouter.get("/list/{id}", response_model=DocumentListByNotebookIdResponse)
 @handle_errors(default_error_message="Failed to get documents")
 async def get_documents_by_notebook_id(
     id: str,
     db: DbSession,
-) -> list[DocumentListByNotebookId] | None:
+) -> DocumentListByNotebookIdResponse:
 
     doc = await getDocumentsByNotebookId(db, id)
 
     if not doc:
-        return None
+        return DocumentListByNotebookIdResponse(
+            status=True,
+            message="No documents found",
+            count=0,
+            documents=[],
+        )
 
-    return doc
+    return DocumentListByNotebookIdResponse(
+        status=True,
+        message="Documents retrieved successfully",
+        count=len(doc),
+        documents=doc,
+    )
+
+
+@documentRouter.delete("/delete/{id}")
+@handle_errors(default_error_message="Failed to delete document")
+async def delete_document(
+    id: str,
+    db: DbSession,
+) -> dict[str, str | bool]:
+
+    await deleteDocumentById(db, id)
+
+    return {"status": True, "message": "Document deleted successfully"}

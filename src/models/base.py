@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Uuid, func, true
+from sqlalchemy import Boolean, DateTime, Uuid, false, func, true
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -34,4 +34,11 @@ class BaseDatabaseModel(Base):
         nullable=False,
         default=True,
         server_default=true(),
+    )
+
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=True,
+        default=False,
+        server_default=false(),
     )
