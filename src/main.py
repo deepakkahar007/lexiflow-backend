@@ -34,7 +34,7 @@ register_error_handlers(app)
 # Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.CLIENT_URL,
+    allow_origins=config.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

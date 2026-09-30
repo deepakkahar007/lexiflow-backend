@@ -9,12 +9,13 @@ from db.client import DbSession
 from db.query import (
     createNotebook,
     deleteNotebookById,
-    getAllNotebooks,
     getDocumentsByNotebookId,
+    getOwnedNotebook,
     getUserNotebooksById,
 )
 from error.decorator import handle_errors
 from error.exceptions import NotFoundException
+from helper.auth import CurrentUser
 
 notebookRoute = APIRouter(prefix="/notebook", tags=["Notebook"])
 
@@ -26,9 +27,8 @@ class BaseResponseClass(BaseModel):
 
 
 class NotebookCreateRequest(BaseModel):
-    user_id: UUID
     name: str
-    description: str
+    description: str | None = None
 
 
 class NotebookResponse(BaseModel):
@@ -41,7 +41,7 @@ class NotebookResponse(BaseModel):
 class AllNoteBooks(BaseModel):
     id: UUID
     name: str
-    description: str
+    description: str | None
     user_id: UUID
 
     model_config = {"from_attributes": True}
@@ -50,7 +50,7 @@ class AllNoteBooks(BaseModel):
 class GetNotebookByIdResponse(BaseModel):
     id: UUID
     name: str
-    description: str
+    description: str | None
     user_id: UUID
 
     model_config = {"from_attributes": True}
@@ -59,7 +59,7 @@ class GetNotebookByIdResponse(BaseModel):
 class GetNotebookByUserId(BaseModel):
     id: UUID
     name: str
-    description: str
+    description: str | None
     updated_at: datetime
 
     model_config = {"from_attributes": True}
@@ -69,19 +69,24 @@ class NotebookByUserIdResponse(BaseResponseClass):
     notebook: list[GetNotebookByUserId]
 
 
-@notebookRoute.get("/all", response_model=list[AllNoteBooks])
-@handle_errors(default_error_message="Failed to get all notebooks")
-async def get_all_notebooks(db: DbSession):
-    result = await getAllNotebooks(session=db)
-    return result
+def require_owned_notebook(notebook) -> None:
+    """Raise 404 when the notebook is missing or belongs to another user.
+
+    Both cases collapse to 404 so that ids cannot be probed for existence.
+    """
+    if notebook is None:
+        raise NotFoundException(message="Notebook not found")
 
 
 @notebookRoute.post("/create", response_model=NotebookResponse)
 @handle_errors(default_error_message="Failed to create notebook")
-async def create_notebook(payload: NotebookCreateRequest, db: DbSession):
+async def create_notebook(
+    payload: NotebookCreateRequest, db: DbSession, user: CurrentUser
+):
+    """Create a notebook owned by the caller. user_id is never read from the body."""
     notebook = await createNotebook(
         session=db,
-        user_id=payload.user_id,
+        user_id=user.id,
         name=payload.name,
         description=payload.description,
     )
@@ -97,17 +102,11 @@ async def create_notebook(payload: NotebookCreateRequest, db: DbSession):
     )
 
 
-@notebookRoute.get("/documents/{id}")
-@handle_errors(not_found_message="No documents found for this notebook")
-async def get_documents_by_notebook_id(id: str, db: DbSession):
-    result = await getDocumentsByNotebookId(session=db, notebook_id=id)
-    return result
-
-
-@notebookRoute.get("/user/{id}", response_model=NotebookByUserIdResponse)
+@notebookRoute.get("/user/me", response_model=NotebookByUserIdResponse)
 @handle_errors(default_error_message="No notebooks found for this user")
-async def get_notebooks_by_user_id(id: str, db: DbSession):
-    result = await getUserNotebooksById(session=db, user_id=id)
+async def get_my_notebooks(db: DbSession, user: CurrentUser):
+    """List the caller's notebooks. The user id comes from the session cookie."""
+    result = await getUserNotebooksById(session=db, user_id=str(user.id))
 
     if len(result) == 0:
         return NotebookByUserIdResponse(
@@ -125,15 +124,35 @@ async def get_notebooks_by_user_id(id: str, db: DbSession):
     }
 
 
+@notebookRoute.get("/documents/{id}")
+@handle_errors(not_found_message="No documents found for this notebook")
+async def get_documents_by_notebook_id(id: str, db: DbSession, user: CurrentUser):
+    require_owned_notebook(await getOwnedNotebook(db, id, str(user.id)))
+    result = await getDocumentsByNotebookId(
+        session=db, notebook_id=id, user_id=str(user.id)
+    )
+    return result
+
+
 @notebookRoute.get("/{id}", response_model=list[GetNotebookByIdResponse])
 @handle_errors(not_found_message="No notebooks found for this user")
-async def get_notebook_by_user_id(id: str, db: DbSession):
-    result = await getUserNotebooksById(session=db, user_id=id)
-    return result
+async def get_notebook_by_user_id(id: str, db: DbSession, user: CurrentUser):
+    """Return a single notebook, scoped to the caller."""
+    notebook = await getOwnedNotebook(db, id, str(user.id))
+    require_owned_notebook(notebook)
+    return [notebook]
 
 
 @notebookRoute.delete("/{id}")
 @handle_errors()
-async def delete_notebook(id: str, db: DbSession):
-    result = await deleteNotebookById(session=db, id=id)
-    return result
+async def delete_notebook(id: str, db: DbSession, user: CurrentUser):
+    """Delete a notebook owned by the caller."""
+    notebook = await getOwnedNotebook(db, id, str(user.id))
+    require_owned_notebook(notebook)
+
+    deleted = await deleteNotebookById(session=db, id=id, user_id=str(user.id))
+
+    if not deleted:
+        raise NotFoundException(message="Notebook not found")
+
+    return {"status": True, "message": "Notebook deleted successfully"}
